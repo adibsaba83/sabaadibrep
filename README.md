@@ -722,6 +722,34 @@ public class PerformanceTuningArrayProcessing {
 -------------------------
   singleton
   package com.patternorchestrator;
+  
+  package com.patternorchestrator;
+
+@FunctionalInterface
+public interface Operation {
+    void execute();
+}
+
+Java
+
+package com.patternorchestrator;
+
+import java.util.Objects;
+
+// ⭐ ترفند سنیور: استفاده از Record جاوا برای دستیابی به Immutability کامل و کدهای بدون Boilerplate
+public record PrintOperation(String value) implements Operation {
+    
+    // اعتبارسنجی مقادیر نامعتبر در سازنده فشردهِ Record
+    public PrintOperation {
+        Objects.requireNonNull(value, "Operation value cannot be null");
+        if (value.isBlank()) throw new IllegalArgumentException("Value cannot be blank");
+    }
+
+    @Override
+    public void execute() {
+        System.out.println(value);
+    }
+}
 
 public class SingletonOrchestrator {
     private final OperationManager manager;
@@ -2612,4 +2640,1573 @@ public class Main {
         }
     }
 }
+------upgradabilitymanager
+package com.example.upgradeability;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class UpgradeManager {
+    private final List<ModuleVersion> modules = new ArrayList<>();
+
+    public void registerModule(String moduleName, String version, boolean isServer) {
+        validateVersionFormat(version); // برنامه‌نویسی تدافعی
+        modules.add(new ModuleVersion(moduleName, version, isServer));
+    }
+
+    public List<ModuleVersion> getModules() {
+        // ⭐ ترفند سنیور: جلوگیری از تغییر لیست توسط کلاس‌های خارجی (Encapsulation)
+        return Collections.unmodifiableList(modules);
+    }
+
+    public boolean upgradeModule(String moduleName, String newVersion, boolean isServer) {
+        validateVersionFormat(newVersion);
+
+        for (ModuleVersion mv : modules) {
+            if (mv.getModuleName().equals(moduleName) && mv.isServer() == isServer) {
+                // ارتقا فقط در صورتی انجام می‌شود که نسخه جدید، بزرگتر از نسخه فعلی باشد
+                if (compareVersions(newVersion, mv.getVersion()) > 0) {
+                    mv.setVersion(newVersion);
+                    return true;
+                }
+                return false; // ماژول پیدا شد اما نسخه جدیدتر نبود
+            }
+        }
+        return false; // ماژول اصلاً پیدا نشد
+    }
+
+    // ⭐ مقایسه کاملاً ایمن نسخه‌ها (Semantic Versioning)
+    private int compareVersions(String v1, String v2) {
+        String[] parts1 = v1.split("\\.");
+        String[] parts2 = v2.split("\\.");
+        int length = Math.max(parts1.length, parts2.length);
+
+        for (int i = 0; i < length; i++) {
+            int n1 = i < parts1.length ? Integer.parseInt(parts1[i]) : 0;
+            int n2 = i < parts2.length ? Integer.parseInt(parts2[i]) : 0;
+            
+            if (n1 != n2) {
+                // ⭐ ترفند سنیور: استفاده از Integer.compare به جای (n1 - n2) برای جلوگیری از باگ پنهان Integer Overflow
+                return Integer.compare(n1, n2); 
+            }
+        }
+        return 0;
+    }
+
+    // اعتبارسنجی فرمت نسخه با Regex
+    private void validateVersion(String version) {
+        if (version == null || !version.matches("\\d+(\\.\\d+)*")) {
+            throw new IllegalArgumentException("Invalid version format. Expected format like '1.0.0'");
+        }
+    }
+}
+------------------
+interserviceapiintegration
+
+
+import java.util.Optional;
+
+public class ServiceA {
+    
+    // ⭐ ترفند سنیور: استفاده از Optional برای نشان دادن اینکه داده ممکن است در دسترس نباشد
+    public Optional<String> getData() {
+        // شبیه‌سازی دریافت داده از یک منبع داخلی (مثلاً دیتابیس یا فایل)
+        String internalData = "raw_internal_data_2026";
+        return Optional.of(internalData);
+    }
+}
+
+۲. فایل ServiceB.java (پردازشگر داده)
+
+طبق خواسته مسأله، متد باید نتیجه را "برگرداند" تا در کلاس اصلی چاپ شود. این یعنی ما اصل تفکیک مسئولیت‌ها (SRP) را رعایت کرده و چاپ کنسول را از منطق پردازش جدا می‌کنیم.
+Java
+
+package com.example;
+
+public class ServiceB {
+    
+    // تغییر خروجی از void به String
+    public String processData(String data) {
+        // برنامه‌نویسی تدافعی (Defensive Programming): بررسی ورودی‌های نامعتبر
+        if (data == null || data.isBlank()) {
+            throw new IllegalArgumentException("Data cannot be null or empty for processing");
+        }
+        
+        // شبیه‌سازی پردازش داده‌های بیزینسی
+        return "PROCESSED_[" + data.toUpperCase() + "]";
+    }
+}
+
+
+Java
+
+package com.example;
+
+public class Application {
+    public static void main(String[] args) {
+        ServiceA serviceA = new ServiceA();
+        ServiceB serviceB = new ServiceB();
+
+        System.out.println("--- Starting Internal API Integration ---");
+
+        // ⭐ ترفند سنیور: استفاده از متدهای Functional برای پردازش زنجیره‌ای و ایمن
+        serviceA.getData()
+                .map(serviceB::processData) // اگر داده‌ای بود، آن را به ServiceB پاس بده
+                .ifPresentOrElse(
+                        result -> System.out.println("✅ Final Output: " + result), // چاپ در صورت موفقیت
+                        () -> System.err.println("❌ Error: No data received from Service A") // خطا در صورت خالی بودن
+                );
+    }
+}
+
+--------------------------------
+
+
+
+secureinputvalidator
+
+
+
+
+package com.example;
+
+import java.util.Scanner;
+import java.util.regex.Pattern;
+
+public class SecureInputValidator {
+    
+    // ⭐ ترفند سنیور: کامپایل کردن پترن به صورت استاتیک و نهایی (یک بار برای همیشه)
+    // این پترن هم کاراکترهای مجاز و هم طول (۳ تا ۳۰) را به صورت همزمان چک می‌کند.
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{3,30}$");
+
+    public static void main(String[] args) {
+        // مدیریت ایمن منابع با try-with-resources
+        try (Scanner scanner = new Scanner(System.in)) {
+            System.out.println("Enter your username:");
+            
+            // برنامه‌نویسی تدافعی: حذف فاصله‌های اضافی احتمالی در ابتدا و انتها
+            String username = scanner.nextLine().trim(); 
+
+            if (validateUsername(username)) {
+                System.out.println("✅ Username is valid: " + username);
+            } else {
+                System.out.println("❌ Invalid username! Must be 3-30 characters and contain only letters, numbers, and underscores.");
+            }
+        }
+    }
+
+    public static boolean validateUsername(String username) {
+        // Fail-Fast: اگر ورودی null بود، بلافاصله رد می‌شود تا از NullPointerException جلوگیری شود
+        if (username == null) {
+            return false;
+        }
+        
+        // استفاده از پترنِ از پیش کامپایل شده برای حداکثر سرعت
+        return USERNAME_PATTERN.matcher(username).matches();
+    }
+}
+-----------------------------------------priorityqueueperformance
+package com.example.priorityqueue;
+
+import java.util.PriorityQueue;
+
+public class FastPriorityQueue {
+    
+    // ⭐ ترفند سنیور ۱: استفاده از کلاس استاندارد PriorityQueue که زمان درج و حذف در آن O(log N) است.
+    // ⭐ ترفند سنیور ۲: تنظیم ظرفیت اولیه (Initial Capacity) برای جلوگیری از Overhead تغییر اندازه آرایه.
+    private final PriorityQueue<Integer> data = new PriorityQueue<>(2_000_000);
+
+    public void add(int value) {
+        data.add(value);
+    }
+
+    public Integer poll() {
+        // متد poll در صف اولویت، کوچکترین عنصر را برداشته و ساختار درخت را در O(log N) ترمیم می‌کند.
+        return data.poll();
+    }
+
+    public boolean isEmpty() {
+        return data.isEmpty();
+    }
+}
+
+۲. کلاس PerformanceAnalyzer.java (تست استاندارد و تمیز)
+
+کدهای زائد مانند System.gc() و Thread.sleep که باعث اختلال در اندازه‌گیری واقعی زمان می‌شدند، حذف شده‌اند. یک صف اولویت با ایندکس کار نمی‌کند، بلکه تا زمان خالی شدن، متد poll را صدا می‌زند.
+Java
+
+package com.example.priorityqueue;
+
+import java.util.Random;
+
+public class PerformanceAnalyzer {
+    private static final int NUMBER_OF_ELEMENTS = 2_000_000;
+
+    public void run() {
+        FastPriorityQueue pq = new FastPriorityQueue();
+        Random random = new Random(42); // Seed ثابت برای تست یکسان
+
+        System.out.println("Starting high-performance test for " + NUMBER_OF_ELEMENTS + " elements...");
+
+        // ۱. تست زمان افزودن (Add)
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < NUMBER_OF_ELEMENTS; i++) {
+            pq.add(random.nextInt());
+        }
+        long afterAdd = System.currentTimeMillis();
+
+        // ۲. تست زمان استخراج بالاترین اولویت (Poll)
+        while (!pq.isEmpty()) {
+            pq.poll();
+        }
+        long afterPoll = System.currentTimeMillis();
+
+        // چاپ نتایج
+        System.out.println("Add time: " + (afterAdd - startTime) + " ms");
+        System.out.println("Poll time: " + (afterPoll - afterAdd) + " ms");
+        System.out.println("Total Process: " + (afterPoll - startTime) + " ms");
+    }
+}
+
+۳. کلاس PriorityQueueApp.java (بدون تغییر)
+Java
+
+package com.example.priorityqueue;
+
+public class PriorityQueueApp {
+    public static void main(String[] args) {
+        PerformanceAnalyzer analyzer = new PerformanceAnalyzer();
+        analyzer.run();
+    }
+}
+------------------------------robustfiledownloader
+kage org.example;
+
+import java.io.File;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+public class RobustFileDownloader {
+    private static final int MAX_RETRY = 5;
+    private static final int BUFFER_SIZE = 8192; // 8KB buffer is standard for network operations
+    private static final long RETRY_DELAY_MS = 2000;
+
+    private final String fileUrl;
+    private final File destinationFile;
+
+    public RobustFileDownloader(String fileUrl, String destinationPath) {
+        this.fileUrl = fileUrl;
+        this.destinationFile = new File(destinationPath);
+    }
+
+    public static void main(String[] args) {
+        if (args.length != 2) {
+            System.err.println("Usage: java RobustFileDownloader <file_url> <destination_path>");
+            System.exit(1);
+        }
+        
+        System.out.println("Initializing Robust Downloader...");
+        RobustFileDownloader downloader = new RobustFileDownloader(args[0], args[1]);
+        
+        try {
+            downloader.downloadFile();
+        } catch (Exception e) {
+            System.err.println("❌ Fatal Error: Download failed permanently -> " + e.getMessage());
+            System.exit(1);
+        }
+    }
+
+    public void downloadFile() throws Exception {
+        int retryCount = 0;
+        
+        while (retryCount < MAX_RETRY) {
+            try {
+                // ۱. محاسبه اینکه تا الان چقدر دانلود شده است
+                long downloadedBytes = destinationFile.exists() ? destinationFile.length() : 0;
+                
+                System.out.printf("Attempt %d/%d - Connecting... (Resuming from byte: %d)%n", 
+                        (retryCount + 1), MAX_RETRY, downloadedBytes);
+
+                URL url = new URL(fileUrl);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                
+                // ⭐ ترفند سنیور: اضافه کردن هدر Range برای از سرگیری دانلود (Resume)
+                if (downloadedBytes > 0) {
+                    connection.setRequestProperty("Range", "bytes=" + downloadedBytes + "-");
+                }
+                
+                // تایم‌اوت‌های منطقی برای جلوگیری از هنگ کردن برنامه
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(10000);
+
+                int responseCode = connection.getResponseCode();
+
+                // بررسی کدهای موفق: 200 (شروع از صفر) یا 206 (موفقیت در از سرگیری)
+                if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_PARTIAL) {
+                    
+                    // بررسی اینکه آیا فایل قبلاً کامل دانلود شده است؟
+                    long contentLength = connection.getContentLengthLong();
+                    if (contentLength == 0 && responseCode == HttpURLConnection.HTTP_PARTIAL) {
+                        System.out.println("✅ File is already fully downloaded!");
+                        return;
+                    }
+
+                    // ۲. شروع فرآیند دانلود و نوشتن روی هارد
+                    processDownloadStream(connection.getInputStream(), downloadedBytes);
+                    
+                    System.out.println("✅ Download completed successfully.");
+                    return; // خروج موفقیت‌آمیز از حلقه
+
+                } else if (responseCode == 416) { // Requested Range Not Satisfiable
+                    System.out.println("✅ File is already fully downloaded (Range out of bounds).");
+                    return;
+                } else {
+                    throw new IOException("Server returned HTTP response code: " + responseCode);
+                }
+
+            } catch (IOException e) {
+                retryCount++;
+                System.err.println("⚠️ Network error occurred: " + e.getMessage());
+                
+                if (retryCount >= MAX_RETRY) {
+                    throw new Exception("Exceeded maximum retries. Aborting.");
+                }
+                
+                System.out.println("Waiting " + (RETRY_DELAY_MS / 1000) + " seconds before retrying...");
+                Thread.sleep(RETRY_DELAY_MS);
+            }
+        }
+    }
+
+    // ⭐ ترفند سنیور: جدا کردن منطق Stream Processing برای رعایت اصل SRP
+    private void processDownloadStream(InputStream inputStream, long startByte) throws IOException {
+        
+        // استفاده از RandomAccessFile در حالت "rw" (Read/Write)
+        try (RandomAccessFile raf = new RandomAccessFile(destinationFile, "rw");
+             InputStream in = inputStream) {
+            
+            // پرش به نقطه‌ای که قبلاً دانلود شده تا داده‌ها اوررایت نشوند
+            raf.seek(startByte);
+
+            byte[] buffer = new byte[BUFFER_SIZE];
+            int bytesRead;
+            long currentTotal = startByte;
+
+            System.out.println("⬇️ Downloading data...");
+            
+            // خواندن از اینترنت و نوشتن در فایل به صورت تکه‌تکه (Chunked)
+            while ((bytesRead = in.read(buffer)) != -1) {
+                raf.write(buffer, 0, bytesRead);
+                currentTotal += bytesRead;
+                
+                // در پروژه‌های واقعی اینجا می‌توانید درصد دانلود را محاسبه و چاپ کنید
+            }
+        }
+    }
+}
+
+robustFiledownloader
+package RobustFileDownloader;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+
+public class FileDownloader {
+    private static final int BUFFER_SIZE = 8192; // بافر 8KB برای پرفورمنس بهتر I/O
+
+    public void download(String fileURL, String outputFile) throws IOException {
+        Path targetPath = Paths.get(outputFile);
+        Path progressPath = Paths.get(outputFile + ".progress");
+
+        long downloadedBytes = getProgress(progressPath);
+
+        HttpURLConnection connection = (HttpURLConnection) new URL(fileURL).openConnection();
+        // جلوگیری از فریز شدن برنامه در صورت قطعی اینترنت
+        connection.setConnectTimeout(10000); 
+        connection.setReadTimeout(10000);
+        connection.setRequestProperty("Range", "bytes=" + downloadedBytes + "-");
+
+        int responseCode = connection.getResponseCode();
+
+        // هندل کردن لبه مرزی: اگر فایل قبلاً کامل دانلود شده باشد، سرور خطای 416 می‌دهد
+        if (responseCode == 416) {
+            System.out.println("File is already fully downloaded.");
+            Files.deleteIfExists(progressPath);
+            return;
+        }
+
+        if (responseCode != HttpURLConnection.HTTP_PARTIAL && responseCode != HttpURLConnection.HTTP_OK) {
+            throw new IOException("Server rejected download. HTTP Code: " + responseCode);
+        }
+
+        // استفاده از try-with-resources برای بستن ایمن منابع
+        try (InputStream in = connection.getInputStream();
+             RandomAccessFile out = new RandomAccessFile(targetPath.toFile(), "rw")) {
+
+            out.seek(downloadedBytes);
+            byte[] buffer = new byte[BUFFER_SIZE];
+            int bytesRead;
+
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+                downloadedBytes += bytesRead;
+                // ذخیره ایمن پیشرفت در هر چرخه
+                saveProgress(progressPath, downloadedBytes); 
+            }
+
+            System.out.println("Download completed successfully.");
+            Files.deleteIfExists(progressPath); // حذف فایل وضعیت پس از اتمام کار
+
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    // خواندن فایل وضعیت با مدیریت خطای اصولی
+    private long getProgress(Path progressPath) {
+        try {
+            if (Files.exists(progressPath)) {
+                return Long.parseLong(Files.readString(progressPath).trim());
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to read progress file. Starting from 0.");
+        }
+        return 0;
+    }
+
+    // ذخیره وضعیت روی دیسک فیزیکی
+    private void saveProgress(Path progressPath, long bytes) throws IOException {
+        Files.writeString(
+            progressPath, 
+            String.valueOf(bytes), 
+            StandardOpenOption.CREATE, 
+            StandardOpenOption.TRUNCATE_EXISTING, 
+            StandardOpenOption.SYNC // <-- نکته کلیدی سنیور!
+        );
+    }
+}
+----------------------------------
+
+performancetunningapp
+package org.example;
+
+public class PerformanceTuningApp {
+    public static void main(String[] args) {
+        long start = System.currentTimeMillis();
+
+        // تغییر اول: استفاده از long برای جلوگیری از Integer Overflow
+        long sum = 0; 
+
+        // تغییر دوم: به جای پیمایش تک‌تک اعداد، با گام‌های 7 تایی جلو می‌رویم!
+        // این کار 85% از پردازش حلقه را قبل از شروع حذف می‌کند (از 10 میلیون به 1.4 میلیون)
+        for (int i = 7; i <= 10_000_000; i += 7) {
+            if (isSpecialNumberOptimized(i)) {
+                sum += i;
+            }
+        }
+
+        long end = System.currentTimeMillis();
+        System.out.println("Sum of special numbers: " + sum);
+        System.out.println("Time elapsed: " + (end - start) + " ms");
+    }
+
+    // تغییر سوم: استفاده از ریاضیات خالص به جای تبدیل به String
+    private static boolean isSpecialNumberOptimized(int n) {
+        // چون حلقه اصلی با گام‌های 7 تایی می‌رود، دیگر نیازی به چک کردن n % 7 == 0 نیست.
+        
+        int digitSum = 0;
+        while (n > 0) {
+            digitSum += n % 10; // رقم آخر را می‌گیریم
+            n /= 10;            // رقم آخر را حذف می‌کنیم
+        }
+        
+        return digitSum % 5 == 0;
+    }
+}
+-----------------
+ # DatabaseEncryptionAndAuthChallenge 
+ package com.example;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class RemoteAuthenticator {
+    // استفاده از ConcurrentHashMap برای Thread-Safety در سیستم‌های همزمان
+    private static final Map<String, String> tokens = new ConcurrentHashMap<>();
+
+    // کلید ثابت و ایمن 256-بیت (طبق خواسته چالش) 
+    // نکته سنیور: در پروداکشن این کلید از Environment Variables خوانده می‌شود.
+    private static final byte[] STATIC_KEY = "MySuperSecretKey123456789012345".getBytes();
+    private static final SecretKeySpec SECRET_KEY = new SecretKeySpec(STATIC_KEY, "AES");
+    
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
+    private static final String ALGORITHM = "AES/GCM/NoPadding";
+
+    // --- چالش 2: اعتبارسنجی دقیق توکن ---
+    private static void validateToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Token cannot be null or empty.");
+        }
+        if (token.length() < 16) {
+            throw new IllegalArgumentException("Token length must be at least 16 characters for security.");
+        }
+    }
+
+    public static boolean authenticate(String token) {
+        try {
+            validateToken(token);
+            return tokens.containsKey(token);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public static void addToken(String token, String username) {
+        validateToken(token);
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty.");
+        }
+        tokens.put(token, username);
+    }
+
+    // --- چالش 1: رمزگذاری اصولی AES/GCM ---
+    public String encryptPassword(String password) throws Exception {
+        byte[] iv = new byte[GCM_IV_LENGTH];
+        new SecureRandom().nextBytes(iv); // IV باید تصادفی باشد
+
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+        cipher.init(Cipher.ENCRYPT_MODE, SECRET_KEY, parameterSpec);
+
+        byte[] cipherText = cipher.doFinal(password.getBytes());
+
+        // الصاق IV به ابتدای دیتای رمزنگاری شده (Best Practice)
+        ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + cipherText.length);
+        byteBuffer.put(iv);
+        byteBuffer.put(cipherText);
+
+        return Base64.getEncoder().encodeToString(byteBuffer.array());
+    }
+
+    // متد رمزگشایی برای لاگین
+    public String decryptPassword(String encryptedData) throws Exception {
+        byte[] cipherMessage = Base64.getDecoder().decode(encryptedData);
+
+        // استخراج IV از ابتدای رشته
+        byte[] iv = new byte[GCM_IV_LENGTH];
+        System.arraycopy(cipherMessage, 0, iv, 0, iv.length);
+
+        // استخراج دیتای رمزنگاری شده
+        int cipherTextLength = cipherMessage.length - iv.length;
+        byte[] cipherText = new byte[cipherTextLength];
+        System.arraycopy(cipherMessage, iv.length, cipherText, 0, cipherTextLength);
+
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+        cipher.init(Cipher.DECRYPT_MODE, SECRET_KEY, parameterSpec);
+
+        byte[] plainText = cipher.doFinal(cipherText);
+        return new String(plainText);
+    }
+
+    // متد کمکی برای مقایسه رمز در زمان لاگین
+    public boolean checkPassword(String plainPassword, String encryptedPasswordFromDb) {
+        try {
+            String decrypted = decryptPassword(encryptedPasswordFromDb);
+            return decrypted.equals(plainPassword);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}
+
+2. فایل Main.java
+
+در این فایل، try-with-resources را اعمال می‌کنیم و منطق مقایسه را اصلاح می‌کنیم.
+Java
+
+package com.example;
+
+import java.sql.*;
+import java.util.Scanner;
+import java.util.UUID;
+
+public class Main {
+    public static void main(String[] args) {
+        RemoteAuthenticator remoteAuthenticator = new RemoteAuthenticator();
+
+        // استفاده از try-with-resources برای جلوگیری از نشت حافظه و کانکشن
+        try (Connection conn = DriverManager.getConnection("jdbc:h2:mem:testdb", "sa", "");
+             Statement stmt = conn.createStatement();
+             Scanner scanner = new Scanner(System.in)) {
+
+            // اضافه کردن قید UNIQUE به username
+            stmt.execute("CREATE TABLE users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(255) UNIQUE, password VARCHAR(255))");
+
+            System.out.println("1. Register\n2. Login");
+            int choice = Integer.parseInt(scanner.nextLine());
+
+            if (choice == 1) {
+                System.out.print("Enter username: ");
+                String username = scanner.nextLine();
+                System.out.print("Enter password: ");
+                String password = scanner.nextLine();
+
+                // رمزگذاری رمز عبور قبل از ذخیره
+                String encryptedPassword = remoteAuthenticator.encryptPassword(password);
+
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?, ?)")) {
+                    ps.setString(1, username);
+                    ps.setString(2, encryptedPassword);
+                    ps.executeUpdate();
+                    System.out.println("User registered successfully.");
+                } catch (SQLIntegrityConstraintViolationException e) {
+                    System.out.println("Error: Username already exists.");
+                }
+
+            } else if (choice == 2) {
+                System.out.print("Enter username: ");
+                String username = scanner.nextLine();
+                System.out.print("Enter password: ");
+                String password = scanner.nextLine();
+
+                // بهینه‌سازی سنیور: فقط یوزرنیم را سرچ می‌کنیم، صحت پسورد در جاوا چک می‌شود
+                try (PreparedStatement ps = conn.prepareStatement("SELECT password FROM users WHERE username = ?")) {
+                    ps.setString(1, username);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            String dbEncryptedPassword = rs.getString("password");
+                            
+                            // بررسی صحت رمز عبور
+                            if (remoteAuthenticator.checkPassword(password, dbEncryptedPassword)) {
+                                System.out.println("Login successful.");
+                                
+                                // تولید توکن استاندارد و ذخیره آن
+                                String token = UUID.randomUUID().toString().replace("-", "");
+                                RemoteAuthenticator.addToken(token, username);
+                                System.out.println("Auth Token Generated: " + token);
+                            } else {
+                                System.out.println("Login failed: Incorrect password.");
+                            }
+                        } else {
+                            System.out.println("Login failed: User not found.");
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("An application error occurred: " + e.getMessage());
+        }
+    }
+}
+
+
+---------------
+crossplatformfileseperator
+package org.example;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class CrossPlatformFileSeparator {
+
+    public static void main(String[] args) {
+        String directory = "test_dir";
+        String fileName = "sample.txt";
+
+        // ۱. استفاده از Path و resolve به جای چسباندن رشته‌ها
+        Path directoryPath = Path.of(directory);
+        Path filePath = directoryPath.resolve(fileName);
+
+        try {
+            // ۲. ایجاد دایرکتوری‌ها به صورت امن
+            Files.createDirectories(directoryPath);
+
+            // ۳. نوشتن در فایل با استفاده از متدهای بهینه‌شده NIO.2
+            Files.writeString(filePath, "Hello, World!");
+
+            System.out.println("File successfully created at: " + filePath.toAbsolutePath());
+
+        } catch (IOException e) {
+            // ۴. مدیریت خطای اصولی به جای e.printStackTrace()
+            System.err.println("Failed to create or write to the file. Reason: " + e.getMessage());
+            // در پروژه‌های واقعی اینجا از Logger (مثل SLF4J) استفاده می‌شود.
+        }
+    }
+}
+---------------------------
+
+arraysumperformancetunning
+package ArraySumPerformanceTuning;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) {
+        int size = 200_000_000;
+        int[] numbers = new int[size];
+        Random random = new Random(42);
+        for (int i = 0; i < size; i++) {
+            numbers[i] = random.nextInt(100);
+        }
+
+        // گرم کردن JIT Compiler (Warm-up) برای بنچمارک دقیق‌تر
+        sumOptimized(numbers); 
+
+        long start = System.currentTimeMillis();
+        long sum = sumOptimized(numbers);
+        long end = System.currentTimeMillis();
+        
+        System.out.println("Sum: " + sum);
+        System.out.println("Time: " + (end - start) + " ms");
+    }
+
+    /**
+     * راه حل بهینه: استفاده از Manual Chunking و Java 21 AutoCloseable Executor
+     */
+    public static long sumOptimized(int[] numbers) {
+        int cores = Runtime.getRuntime().availableProcessors();
+        
+        // استفاده از بلوک try-with-resources برای Executor (ویژگی مدرن جاوا)
+        try (ExecutorService executor = Executors.newFixedThreadPool(cores)) {
+            int chunkSize = (numbers.length + cores - 1) / cores;
+            List<Callable<Long>> tasks = new ArrayList<>(cores);
+
+            for (int i = 0; i < cores; i++) {
+                final int start = i * chunkSize;
+                final int end = Math.min(start + chunkSize, numbers.length);
+                
+                tasks.add(() -> {
+                    long localSum = 0; // استفاده از متغیر محلی (Stack) برای جلوگیری از False Sharing
+                    // این حلقه ساده به شدت توسط JIT (Auto-Vectorization) بهینه می‌شود
+                    for (int j = start; j < end; j++) {
+                        localSum += numbers[j];
+                    }
+                    return localSum;
+                });
+            }
+
+            long totalSum = 0;
+            // اجرای موازی تمام Task ها و تجمیع نتایج
+            for (Future<Long> future : executor.invokeAll(tasks)) {
+                totalSum += future.get();
+            }
+            return totalSum;
+
+        } catch (InterruptedException | ExecutionException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Error calculating sum", e);
+        }
+    }
+}
+--------------------------------
+ 
+ threadsafedataaggregator
+ package com.example.aggregator;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.Collectors;
+
+public class DataAggregator {
+    // ⭐ ترفند سنیور: استفاده از LongAdder که مخصوص شمارش‌های سنگینِ همزمان (High-Concurrency) طراحی شده است
+    private final ConcurrentHashMap<String, LongAdder> dataMap = new ConcurrentHashMap<>();
+
+    public void aggregate(String key, long value) {
+        // متد computeIfAbsent تضمین می‌کند که برای هر کلید فقط یک بار LongAdder ساخته شود
+        // و سپس متد add به صورت کاملاً غیرمسدودکننده (Non-blocking) و توزیع‌شده مقدار را اضافه می‌کند
+        dataMap.computeIfAbsent(key, k -> new LongAdder()).add(value);
+    }
+
+    public Map<String, Long> getAll() {
+        // ⭐ ترفند سنیور: جلوگیری از نشت ارجاع (Reference Leak) و حفظ Encapsulation
+        // تبدیل LongAdder به primitive long و برگرداندن یک Map غیرقابل تغییر (Unmodifiable)
+        return dataMap.entrySet().stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().sum()
+                ));
+    }
+}
+
+۲. فایل Main.java (تست استاندارد و مدرن)
+
+برای اینکه تفاوت پرفورمنس را به درستی درک کنید، Main را با استانداردهای مدرن جاوا (ThreadLocalRandom و ExecutorService) بازنویسی می‌کنیم.
+Java
+
+package com.example.aggregator;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+
+public class Main {
+    public static void main(String[] args) {
+        DataAggregator aggregator = new DataAggregator();
+        int threads = 20;
+        int iterations = 100_000;
+
+        System.out.println("Starting aggregation with " + threads + " threads...");
+        long start = System.currentTimeMillis();
+
+        // مدیریت ایمن تردها با استفاده از try-with-resources (ویژگی جاوا 19+)
+        // این بلوک به صورت خودکار منتظر تمام شدن (shutdown و awaitTermination) وظایف می‌ماند
+        try (ExecutorService executor = Executors.newFixedThreadPool(threads)) {
+            for (int i = 0; i < threads; i++) {
+                executor.submit(() -> {
+                    // ⭐ ترفند سنیور: استفاده از ThreadLocalRandom به جای Random مشترک
+                    // این کار سرعت تولید اعداد تصادفی در محیط چندنخی را ده‌ها برابر می‌کند
+                    ThreadLocalRandom random = ThreadLocalRandom.current();
+                    for (int j = 0; j < iterations; j++) {
+                        String key = "key" + random.nextInt(10);
+                        aggregator.aggregate(key, 1);
+                    }
+                });
+            }
+        }
+
+        long end = System.currentTimeMillis();
+        System.out.println("Aggregation completed in: " + (end - start) + " ms");
+        System.out.println("Final Data: " + aggregator.getAll());
+    }
+}
+------------------------------ThreadedAsyncProcessor
+package com.example;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class ThreadedAsyncProcessor {
+
+    public List<Integer> processNumbers(List<Integer> numbers) {
+        // برنامه‌نویسی تدافعی: مدیریت ورودی‌های خالی
+        if (numbers == null || numbers.isEmpty()) {
+            return List.of();
+        }
+
+        // ⭐ ترفند سنیور ۱: محاسبه داینامیک تعداد تردها بر اساس هسته‌های CPU یا اندازه لیست
+        int poolSize = Math.min(numbers.size(), Runtime.getRuntime().availableProcessors() * 2);
+
+        // ⭐ ترفند سنیور ۲: استفاده از try-with-resources برای ExecutorService
+        // این کار به طور خودکار در انتهای بلوک، متد close() را صدا می‌زند که 
+        // منتظر اتمام تمام تسک‌ها مانده و سپس ThreadPool را به صورت ایمن خاموش می‌کند.
+        try (ExecutorService executor = Executors.newFixedThreadPool(poolSize)) {
+
+            // ۱. ساخت و ارسال وظایف (Tasks) به صورت موازی با Stream API
+            List<CompletableFuture<Integer>> futures = numbers.stream()
+                    .map(num -> CompletableFuture.supplyAsync(() -> processSingle(num), executor))
+                    .toList();
+
+            // ۲. منتظر ماندن برای اتمام همه پردازش‌ها به صورت کاملاً همزمان (بدون انسداد متوالی)
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+            // ۳. استخراج و جمع‌آوری نتایج نهایی
+            // متد join() به جای get() استفاده شده تا نیازی به catch کردن Exceptionهای چک‌شده (Checked) نباشد
+            return futures.stream()
+                    .map(CompletableFuture::join)
+                    .toList();
+        } 
+        // هیچ نیازی به نوشتن کدهای پیچیده برای shutdown نیست!
+    }
+
+    private Integer processSingle(Integer number) {
+        // شبیه‌سازی یک عملیات زمان‌بر (برای درک بهتر پردازش موازی در تست)
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // احیای وضعیت وقفه (Best Practice)
+        }
+        return number * 2;
+    }
+}
+
+۲. فایل Main.java (برای تست استاندارد)
+Java
+
+package com.example;
+
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        ThreadedAsyncProcessor processor = new ThreadedAsyncProcessor();
+        
+        // یک لیست طولانی‌تر برای تست واقعی پردازش موازی
+        List<Integer> input = List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        System.out.println("Starting parallel processing...");
+        long start = System.currentTimeMillis();
+
+        List<Integer> output = processor.processNumbers(input);
+
+        long end = System.currentTimeMillis();
+        
+        System.out.println("✅ Output: " + output);
+        System.out.println("⏱️ Time taken: " + (end - start) + " ms");
+    }
+}
+----------------------------------------------
+
+
+regionbasedstorage
+package com.example.RegionBasedDataStorage;
+
+import java.util.*;
+
+public class DataStorageService {
+    
+    // ⭐ ترفند سنیور ۱: استفاده از EnumMap برای بالاترین پرفورمنس ممکن
+    // ⭐ ترفند سنیور ۲: استفاده از Set به جای List برای جستجوی فوق‌سریع (O(1) بجای O(N))
+    private final Map<Region, Set<String>> dataCenters;
+    private final Map<String, List<String>> storage;
+
+    public DataStorageService() {
+        // ایجاد تنظیمات تغییرناپذیر (Immutable) با استفاده از ویژگی‌های مدرن جاوا
+        Map<Region, Set<String>> dcMap = new EnumMap<>(Region.class);
+        dcMap.put(Region.EU, Set.of("EU-DC1", "EU-DC2"));
+        dcMap.put(Region.US, Set.of("US-DC1"));
+        dcMap.put(Region.ASIA, Set.of("ASIA-DC1"));
+        
+        // قفل کردن مپ برای جلوگیری از تغییرات تصادفی در زمان اجرا
+        this.dataCenters = Collections.unmodifiableMap(dcMap);
+        this.storage = new HashMap<>();
+    }
+
+    public void storeData(User user, String data, String dataCenter) {
+        // برنامه‌نویسی تدافعی (Fail-Fast)
+        if (user == null || dataCenter == null) {
+            System.err.println("❌ Error: User or DataCenter cannot be null.");
+            return;
+        }
+
+        // ۱. دریافت دیتاسنترهای مجاز *فقط* برای منطقه همین کاربر
+        Set<String> allowedDataCenters = dataCenters.getOrDefault(user.getRegion(), Collections.emptySet());
+
+        // ۲. اعتبارسنجی امنیتی منطقه (Region-based Security) با یک contains ساده و فوق‌سریع
+        if (!allowedDataCenters.contains(dataCenter)) {
+            // استفاده از printf برای خوانایی بهتر لاگ‌ها
+            System.err.printf("🚨 Security Alert: User '%s' (Region: %s) is strictly PROHIBITED from storing data in '%s'.%n", 
+                    user.getName(), user.getRegion(), dataCenter);
+            return;
+        }
+
+        // ۳. ذخیره‌سازی داده
+        storage.computeIfAbsent(dataCenter, k -> new ArrayList<>()).add(user.getName() + ":" + data);
+        System.out.printf("✅ Success: Data stored for user '%s' in '%s'.%n", user.getName(), dataCenter);
+    }
+
+    public void printAllStorage() {
+        System.out.println("\n--- 🗄️ Current Storage State ---");
+        // ⭐ ترفند سنیور ۳: استفاده از forEach و لامبدا برای خوانایی بهتر
+        storage.forEach((dc, records) -> {
+            System.out.println("DataCenter: " + dc);
+            records.forEach(record -> System.out.println("\t-> " + record));
+        });
+    }
+}
+-------------------------------
+
+javaobjecrdisposal
+
+
+کدی ک
+
+package com.example.gc;
+
+public class DummyResource implements AutoCloseable {
+    private boolean closed = false;
+
+    public void doWork() {
+        // برنامه‌نویسی تدافعی: جلوگیری از استفاده پس از بسته‌شدن
+        if (closed) {
+            throw new IllegalStateException("Cannot work: DummyResource is already closed.");
+        }
+        System.out.println("Working with dummy resource");
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+        System.out.println("Dummy resource closed");
+    }
+}
+
+۲. فایل ResourceHolder.java (مدیر ارشد منابع)
+
+این کلاس مالک منابع است و خودش باید وظیفه آزادسازی آن‌ها را (به جای کلاس Main) بر عهده بگیرد.
+Java
+
+package com.example.gc;
+
+public class ResourceHolder implements AutoCloseable {
+    // تخصیص ۱۰۰ مگابایت حافظه در Heap
+    private byte[] largeBuffer = new byte[100 * 1024 * 1024];
+    private final DummyResource dummyResource;
+    private boolean disposed = false;
+
+    public ResourceHolder() {
+        // کپسوله‌سازی حفظ می‌شود: این کلاس خودش منبع را می‌سازد و مدیریت می‌کند
+        this.dummyResource = new DummyResource();
+    }
+
+    public void useResource() {
+        if (disposed) {
+            throw new IllegalStateException("Cannot use resource: ResourceHolder is already disposed.");
+        }
+        dummyResource.doWork();
+    }
+
+    // ⭐ ترفند سنیور: پیاده‌سازی صحیح close به جای متد منسوخ‌شده finalize
+    @Override
+    public void close() {
+        if (!disposed) {
+            try {
+                // ۱. بستن منابع داخلی
+                if (dummyResource != null) {
+                    dummyResource.close();
+                }
+            } finally {
+                // ۲. کمک به Garbage Collector با رهاسازی سریع رفرنس‌های سنگین
+                largeBuffer = null;
+                disposed = true;
+                System.out.println("ResourceHolder disposed and 100MB memory freed.");
+            }
+        }
+    }
+}
+
+۳. فایل JavaObjectDisposalAndGC.java (نقطه ورود)
+
+کلاس اصلی فقط از try-with-resources برای شیء اصلی استفاده می‌کند.
+Java
+
+package com.example.gc;
+
+public class JavaObjectDisposalAndGC {
+    public static void main(String[] args) throws InterruptedException {
+        System.out.println("--- Starting Resource Management Process ---");
+
+        // شبیه‌سازی ایجاد ۵ شیء سنگین (هر کدام ۱۰۰ مگابایت)
+        for (int i = 0; i < 5; i++) {
+            System.out.println("\nIteration " + (i + 1) + ":");
+            
+            // ⭐ ترفند سنیور: استفاده از try-with-resources برای مدیر اصلی منابع
+            // با رسیدن به انتهای این بلوک، متد close به صورت تضمینی (حتی در صورت Exception) صدا زده می‌شود.
+            try (ResourceHolder holder = new ResourceHolder()) {
+                holder.useResource();
+            } 
+        }
+
+        System.out.println("\n--- Requesting Garbage Collection ---");
+        System.gc(); // پیشنهاد به JVM برای پاکسازی رم (هرچند با null کردن largeBuffer، رم خیلی زودتر آزاد می‌شود)
+        
+        Thread.sleep(2000);
+        System.out.println("Finished gracefully.");
+    }
+}
+
+----------------------
+
+
+
+javafieldlevelauthorization
+package com.example.JavaFieldLevelAuthorization;
+
+public enum Role {
+    ADMIN(true), 
+    MANAGER(true), 
+    USER(false),
+    GUEST(false); // اضافه شدن نقش‌های جدید، امنیت سیستم را به خطر نمی‌اندازد
+
+    private final boolean hasElevatedPrivileges;
+
+    Role(boolean hasElevatedPrivileges) {
+        this.hasElevatedPrivileges = hasElevatedPrivileges;
+    }
+
+    public boolean hasElevatedPrivileges() {
+        return hasElevatedPrivileges;
+    }
+}
+
+۲. فایل User.java (استفاده از Record برای داده‌های غیرقابل تغییر)
+
+در جاوا ۲۱، برای کلاس‌هایی که فقط نقش حامل داده (Data Carrier) را دارند، از record استفاده می‌کنیم که Thread-Safe است و کدهای زائد را حذف می‌کند.
+Java
+
+package com.example.JavaFieldLevelAuthorization;
+
+public record User(String username, String name, String email, String phone, Role role) {}
+
+۳. فایل AuthService.java (امنیت مبتنی بر لیست سفید)
+Java
+
+package com.example.JavaFieldLevelAuthorization;
+
+public class AuthService {
+    
+    // ⭐ ترفند سنیور: بررسی صریح هویت و سطح دسترسی با رویکرد Fail-Safe
+    public boolean canViewSensitiveFields(User viewer, User target) {
+        if (viewer == null || target == null) return false;
+        
+        // کاربر مجاز است اگر: دسترسی مدیریتی داشته باشد، یا بخواهد اطلاعات خودش را ببیند
+        return viewer.role().hasElevatedPrivileges() || viewer.username().equals(target.username());
+    }
+}
+
+۴. فایل UserService.java (لایه داده کاملاً تمیز)
+
+این کلاس حالا فقط وظیفه جستجو و مدیریت لیست را دارد و از Optional و Stream API استفاده می‌کند.
+Java
+
+package com.example.JavaFieldLevelAuthorization;
+
+import java.util.List;
+import java.util.Optional;
+
+public class UserService {
+    // لیست غیرقابل تغییر (Immutable) برای جلوگیری از دستکاری تصادفی
+    private final List<User> users = List.of(
+            new User("admin", "Admin", "admin@example.com", "09120000001", Role.ADMIN),
+            new User("manager", "Manager", "manager@example.com", "09120000002", Role.MANAGER),
+            new User("user1", "User One", "user1@example.com", "09120000003", Role.USER),
+            new User("user2", "User Two", "user2@example.com", "09120000004", Role.USER)
+    );
+
+    // ⭐ ترفند سنیور: بازگرداندن Optional به جای null
+    public Optional<User> findByUsername(String username) {
+        return users.stream()
+                .filter(user -> user.username().equals(username))
+                .findFirst();
+    }
+
+    public List<User> findAll() {
+        return users;
+    }
+}
+
+۵. فایل UserPresenter.java (کلاس جدید برای لایه نمایش)
+
+منطق ماسک کردن و نمایش داده‌ها به یک کلاس اختصاصی منتقل شد تا اصل SRP کاملاً رعایت شود.
+Java
+
+package com.example.JavaFieldLevelAuthorization;
+
+public class UserPresenter {
+    
+    private static final String MASKED_VALUE = "[RESTRICTED]";
+
+    // ⭐ ترفند سنیور: ساختاردهی خروجی به گونه‌ای که ساختار ثابت بماند اما داده‌ها مخفی شوند
+    public static String formatUser(User user, boolean showSensitiveData) {
+        String email = showSensitiveData ? user.email() : MASKED_VALUE;
+        String phone = showSensitiveData ? user.phone() : MASKED_VALUE;
+
+        // استفاده از String.format برای خوانایی بسیار بالاتر
+        return String.format("Username: %-10s | Name: %-10s | Role: %-7s | Email: %-20s | Phone: %s",
+                user.username(), user.name(), user.role(), email, phone);
+    }
+}
+
+۶. فایل Application.java (مدیریت جریان اصلی با منابع ایمن)
+Java
+
+package com.example.JavaFieldLevelAuthorization;
+
+import java.util.Scanner;
+
+public class Application {
+    private final UserService userService = new UserService();
+    private final AuthService authService = new AuthService();
+
+    public void run() {
+        // مدیریت ایمن منابع (جلوگیری از Memory Leak)
+        try (Scanner scanner = new Scanner(System.in)) {
+            System.out.print("Login with username: ");
+            String username = scanner.nextLine().trim();
+
+            // مدیریت ایمن مقادیر خالی با استفاده از Optional
+            User currentUser = userService.findByUsername(username).orElse(null);
+            
+            if (currentUser == null) {
+                System.out.println("❌ Authentication Failed: User not found.");
+                return;
+            }
+
+            System.out.println("\n✅ Welcome, " + currentUser.name() + " (" + currentUser.role() + ")");
+            System.out.println("Type 'list' to see all users or 'exit' to quit.");
+
+            while (true) {
+                System.out.print("> ");
+                String cmd = scanner.nextLine().trim().toLowerCase();
+                
+                if (cmd.equals("exit")) {
+                    System.out.println("Goodbye!");
+                    break;
+                }
+                
+                if (cmd.equals("list")) {
+                    System.out.println("\n--- Users Directory ---");
+                    for (User targetUser : userService.findAll()) {
+                        boolean hasAccess = authService.canViewSensitiveFields(currentUser, targetUser);
+                        System.out.println(UserPresenter.formatUser(targetUser, hasAccess));
+                    }
+                    System.out.println("-----------------------\n");
+                } else {
+                    System.out.println("Unknown command.");
+                }
+            }
+        }
+    }
+}
+
+
+-----
+fileresourceprocessor
+package com.example;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class FileResourceProcessor {
+
+    // ⭐ ترفند سنیور: تعریف ثابت برای جلوگیری از تکرار Magic String
+    private static final String DATA_PREFIX = "#DATA";
+
+    public static void main(String[] args) {
+        if (args.length < 2) {
+            System.err.println("Usage: java FileResourceProcessor <input_directory> <output_file>");
+            return;
+        }
+
+        String inputDir = args[0];
+        Path outputPath = Paths.get(args[1]);
+
+        try {
+            List<String> result = processFiles(inputDir);
+            
+            // ⭐ ترفند سنیور ۱: استفاده از Files.write
+            // این متد به صورت خودکار فایل را باز می‌کند، لیست را خط‌به‌خط می‌نویسد، انکودینگ را اعمال می‌کند 
+            // و در نهایت فایل را ایمن می‌بندد (حذف نیاز به BufferedWriter دستی).
+            Files.write(outputPath, result, StandardCharsets.UTF_8);
+            
+            System.out.println("✅ Processing complete. Output written to " + outputPath.toAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("❌ Fatal Error during I/O operations: " + e.getMessage());
+        }
+    }
+
+    public static List<String> processFiles(String directory) throws IOException {
+        // مدیریت ایمن استریمِ دایرکتوری‌ها
+        try (Stream<Path> paths = Files.walk(Paths.get(directory))) {
+            return paths
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".txt"))
+                    // استخراج داده‌های هر فایل به صورت مجزا و سپس ترکیب آن‌ها
+                    .flatMap(path -> extractDataLines(path).stream())
+                    .collect(Collectors.toList());
+        }
+    }
+
+    // ⭐ ترفند سنیور ۲: ایزوله کردن منطق استریم فایل برای جلوگیری از باگ Stream closed
+    private static List<String> extractDataLines(Path filePath) {
+        // استفاده از Files.lines همراه با انکودینگ صریح
+        // با قرار دادن در بلوک try-with-resources، هندل فایل بلافاصله پس از پردازش بسته می‌شود (جلوگیری از Memory Leak)
+        try (Stream<String> lines = Files.lines(filePath, StandardCharsets.UTF_8)) {
+            return lines
+                    .filter(line -> line.startsWith(DATA_PREFIX))
+                    .map(line -> line.substring(DATA_PREFIX.length())) // استفاده از طول پیشوند به صورت داینامیک
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            // برنامه‌نویسی تدافعی: اگر یک فایل قفل بود، کل فرآیند از کار نمی‌افتد، فقط آن فایل رد می‌شود
+            System.err.println("⚠️ Warning: Could not read file " + filePath + " -> " + e.getMessage());
+            return List.of(); 
+        }
+    }
+}
+
+
+-----------
+
+
+
+extensiblecommandprocessor
+
+
+
+Java
+
+package org.example;
+
+public interface Command {
+    // آرایه‌ای که به اینجا پاس داده می‌شود، فقط شامل آرگومان‌ها خواهد بود (بدون نام خود دستور)
+    void execute(String[] args);
+}
+
+۲. فایل CommandProcessor.java (هسته کاملاً داینامیک و OCP-Compliant)
+Java
+
+package org.example;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+public class CommandProcessor {
+    
+    // ⭐ ترفند سنیور: استفاده از Map به عنوان Registry برای نگهداری دستورات
+    private final Map<String, Command> commandRegistry = new HashMap<>();
+
+    // متد ثبت‌نام برای تزریق وابستگی‌ها از بیرون
+    public void registerCommand(String commandName, Command command) {
+        if (commandName == null || command == null) {
+            throw new IllegalArgumentException("Command name and implementation cannot be null");
+        }
+        commandRegistry.put(commandName.toLowerCase(), command);
+    }
+
+    public void process(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return; // برنامه‌نویسی تدافعی
+        }
+
+        // استفاده از Regex برای جداسازی صحیح فاصله‌های اضافی احتمالی
+        String[] tokens = input.trim().split("\\s+");
+        String commandName = tokens[0].toLowerCase();
+
+        // واکشی دستور از Registry بدون نیاز به حتی یک خط if-else
+        Command command = commandRegistry.get(commandName);
+
+        if (command != null) {
+            // ⭐ ترفند سنیور: جدا کردن نام دستور از آرگومان‌ها
+            String[] args = Arrays.copyOfRange(tokens, 1, tokens.length);
+            command.execute(args);
+        } else {
+            System.out.println("Unknown command: " + commandName);
+        }
+    }
+}
+
+۳. فایل PrintCommand.java (استفاده از کتابخانه‌های بومی جاوا)
+Java
+
+package org.example;
+
+public class PrintCommand implements Command {
+    @Override
+    public void execute(String[] args) {
+        // ⭐ ترفند سنیور: به جای حلقه for و StringBuilder، از متد مدرن String.join استفاده کنید
+        System.out.println(String.join(" ", args));
+    }
+}
+
+۴. فایل SumCommand.java (استفاده از Stream API)
+Java
+
+package org.example;
+
+import java.util.Arrays;
+
+public class SumCommand implements Command {
+    @Override
+    public void execute(String[] args) {
+        try {
+            // ⭐ ترفند سنیور: استفاده از جاوا استریم برای کدهای ریاضی (Functional Programming)
+            int sum = Arrays.stream(args)
+                    .mapToInt(Integer::parseInt)
+                    .sum();
+            System.out.println(sum);
+        } catch (NumberFormatException e) {
+            // جلوگیری از کرش کردن برنامه در صورت ورود حروف به جای عدد
+            System.err.println("Error: Invalid number format provided for sum.");
+        }
+    }
+}
+
+۵. فایل Main.java (نقطه مونتاژ سیستم یا Composition Root)
+
+اینجا جایی است که سیستم سرهم می‌شود. کلاس Main تنها کلاسی است که می‌داند چه دستوراتی در سیستم وجود دارند.
+Java
+
+package org.example;
+
+public class Main {
+    public static void main(String[] args) {
+        CommandProcessor processor = new CommandProcessor();
+
+        // ۱. مرحله پیکربندی (Bootstrapping): ثبت دستورات در سیستم
+        processor.registerCommand("print", new PrintCommand());
+        processor.registerCommand("sum", new SumCommand());
+        
+        // اگر فردا کلاس MultiplyCommand را ساختید، فقط کافیست یک خط اینجا اضافه کنید:
+        // processor.registerCommand("multiply", new MultiplyCommand());
+
+        // ۲. مرحله اجرا (Execution)
+        processor.process("print Hello, World!");
+        processor.process("sum 2 3 4");
+        processor.process("unknown_test 1 2"); // تست هندلینگ خطای دستور نامشخص
+    }
+}
+
+
+
+
+
+
+
+-------------------------
+
+disasterrecoverymanager
+
+
+
+
+
+
+
+package com.example.disaster;
+
+import java.util.*;
+
+public class DisasterRecoveryManager {
+    
+    // دیتابیس اصلی سیستم
+    private final Map<String, String> dataStore = new HashMap<>();
+    
+    // ⭐ ترفند سنیور ۱: استفاده از Record برای تعریف ساختار Immutable (غیرقابل تغییر) و امن بکاپ
+    public record Backup(boolean isFull, Map<String, String> data, long timestamp) {}
+    private final List<Backup> backups = new ArrayList<>();
+    
+    private int backupIntervalMinutes = 60;
+    private int hardwareSwitchOverTimeSeconds = 0;
+    private boolean disasterOccurred = false;
+
+    public void configureBackup(int intervalMinutes) {
+        this.backupIntervalMinutes = intervalMinutes;
+    }
+
+    public void configureHardwareSwitchOver(int timeSeconds) {
+        this.hardwareSwitchOverTimeSeconds = timeSeconds;
+    }
+
+    public void putData(String key, String value) {
+        // ⭐ ترفند سنیور ۲: برنامه‌نویسی تدافعی (Fail-Fast)
+        // اگر فاجعه رخ داده و سیستم ریکاوری نشده، اجازه نوشتن داده جدید نمی‌دهیم
+        if (disasterOccurred) {
+            throw new IllegalStateException("❌ Cannot write data: System is down due to a disaster.");
+        }
+        dataStore.put(key, value);
+    }
+
+    public String getData(String key) {
+        return dataStore.get(key);
+    }
+
+    public void createBackup() {
+        if (backups.isEmpty()) {
+            // اولین بکاپ همیشه باید کامل (Full) باشد
+            backups.add(new Backup(true, new HashMap<>(dataStore), System.currentTimeMillis()));
+            System.out.println("✅ Full Backup created successfully.");
+        } else {
+            // بکاپ‌های بعدی افزایشی (Incremental) هستند
+            createIncrementalBackup();
+        }
+    }
+
+    // متد خصوصی برای کپسوله‌سازی منطق بکاپ افزایشی
+    private void createIncrementalBackup() {
+        // ۱. بازسازی آخرین وضعیت بکاپ گرفته شده در حافظه
+        Map<String, String> lastKnownState = new HashMap<>();
+        for (Backup backup : backups) {
+            lastKnownState.putAll(backup.data());
+        }
+
+        // ۲. پیدا کردن تفاوت‌ها (Delta) بین وضعیت فعلی و آخرین وضعیت بکاپ
+        Map<String, String> delta = new HashMap<>();
+        for (Map.Entry<String, String> entry : dataStore.entrySet()) {
+            String key = entry.getKey();
+            String currentValue = entry.getValue();
+            
+            // ⭐ ترفند سنیور ۳: اگر کلید جدید است، یا مقدار آن تغییر کرده، آن را ذخیره کن (O(N) Complexity)
+            if (!lastKnownState.containsKey(key) || !Objects.equals(lastKnownState.get(key), currentValue)) {
+                delta.put(key, currentValue);
+            }
+        }
+
+        // ۳. ذخیره بکاپ افزایشی (فقط در صورتی که واقعاً تغییری رخ داده باشد)
+        if (!delta.isEmpty()) {
+            backups.add(new Backup(false, delta, System.currentTimeMillis()));
+            System.out.println("✅ Incremental Backup created. Captured " + delta.size() + " changes.");
+        } else {
+            System.out.println("ℹ️ No data changes detected. Incremental Backup skipped.");
+        }
+    }
+
+    public void simulateDisaster() {
+        System.out.println("\n🔥 DISASTER STRUCK! ALL DATA LOST! 🔥");
+        disasterOccurred = true;
+        dataStore.clear(); // شبیه‌سازی از بین رفتن داده‌ها
+    }
+
+    public void recover() {
+        if (!disasterOccurred) return;
+
+        System.out.println("\n🛠️ Starting Disaster Recovery Protocol...");
+        dataStore.clear(); // اطمینان از پاک بودن سیستم قبل از بازگردانی
+        
+        // اعمال بکاپ‌ها به ترتیب (ابتدا Full، سپس Incremental ها)
+        for (Backup backup : backups) {
+            dataStore.putAll(backup.data());
+            String type = backup.isFull() ? "FULL" : "INCREMENTAL";
+            System.out.println("   -> Applied " + type + " backup (Records: " + backup.data().size() + ")");
+        }
+        
+        disasterOccurred = false;
+        System.out.println("✅ System Recovered Successfully.\n");
+    }
+
+    public int calculateRTO() {
+        // Recovery Time Objective (RTO)
+        return backupIntervalMinutes * 60 + hardwareSwitchOverTimeSeconds;
+    }
+
+    public boolean isDisasterOccurred() {
+        return disasterOccurred;
+    }
+}
+
+----------------
 
